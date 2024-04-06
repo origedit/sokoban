@@ -1,0 +1,4 @@
+#!/bin/sh
+
+gforth ../sokoban.fs -e "s\" .\" $1 game bye"
+

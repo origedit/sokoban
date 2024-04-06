@@ -1,3 +1,4 @@
 #!/bin/sh
 
-gforth sokoban.fs -e bye
+gforth sokoban.fs -e "s\" levels\" 1 game bye"
+

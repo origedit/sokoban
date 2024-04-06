@@ -32,6 +32,8 @@ create goals
 
 variable level
 0 value file
+create directory
+ 129 allot
 
 32 constant tblank
 char # constant twall
@@ -39,8 +41,17 @@ char O constant tplayer
 char B constant tbox
 char X constant tgoal
 
+s" the levels directory's name is too long." exception
+ constant long-dir-name
+
+: directory! ( str len -- )
+ dup 128 > if long-dir-name throw then
+ dup 1+ directory >r r@ c!
+ r> 1+ swap cmove
+ [char] / directory dup c@ + c! ;
+
 : file-name
- s" levels/"
+ directory count
  level @ 0 <<# #s #> s+ #>> ;
 
 : rest ( field-ptr -- space )
@@ -191,6 +202,7 @@ char X constant tgoal
   else drop then then
   draw
   win? if
+   1 level +!
    ." congratulations." cr
    ." press any key to continue." cr
    ekey drop
@@ -204,15 +216,14 @@ char X constant tgoal
  ." game complete" cr
  ekey drop ;
 
-: game
+: game ( str len level -- )
+ level !
+ directory!
  begin
-  1 level +!
   ['] load catch if complete exit then
   draw cr
   ." use arrow keys." cr
   ." press R when stuck." cr
   ." press Escape to exit." cr
  play until ;
-
-game
 
