@@ -41,8 +41,8 @@ char O constant tplayer
 char B constant tbox
 char X constant tgoal
 
-s" the levels directory's name is too long." exception
- constant long-dir-name
+s" the levels directory's name is too long."
+ exception constant long-dir-name
 
 : directory! ( str len -- )
  dup 128 > if long-dir-name throw then
@@ -222,7 +222,7 @@ s" the levels directory's name is too long." exception
  begin
   ['] load catch if complete exit then
   draw cr
-  ." use arrow keys." cr
+  ." move using arrow keys." cr
   ." press R when stuck." cr
   ." press Escape to exit." cr
  play until ;
