@@ -2,14 +2,17 @@ vocabulary sokoban
 also sokoban
 sokoban definitions
 
+variable level
+
+0 value file
+create directory   128 allot
+
 0 value width
 0 value height
 0 value size
 1024 constant max-size
-create field
- max-size allot
-create screen
- max-size allot
+create field   max-size allot
+create screen   max-size allot
 
 variable px
 variable py
@@ -18,64 +21,60 @@ variable py
 variable #boxes
 variable #goals
 
-create boxes
- #max-goals 2* cells allot
+create boxes   #max-goals 2* cells allot
 
-: box
- 2* cells boxes + ;
+: box   2* cells boxes + ;
 
-create goals
- #max-goals 2* cells allot
+: box@   box 2@ swap ;
 
-: goal
- 2* cells goals + ;
+create goals   #max-goals 2* cells allot
 
-variable level
-0 value file
-create directory
- 129 allot
+: goal   2* cells goals + ;
 
-32 constant tblank
+: goal@   goal 2@ swap ;
+
+bl constant tblank
 char # constant twall
 char O constant tplayer
 char B constant tbox
 char X constant tgoal
 
-s" the levels directory's name is too long."
- exception constant long-dir-name
-
 : directory! ( str len -- )
- dup 128 > if long-dir-name throw then
- dup 1+ directory >r r@ c!
- r> 1+ swap cmove
- [char] / directory dup c@ + c! ;
+ dup 127 > if
+  s" the levels directory's name is too long."
+  exception throw
+ then
+ directory over 1+ over c!
+ 1+ swap cmove
+ [char] / directory count + 1- c! ;
 
-: file-name
+: open-file
  directory count
- level @ 0 <<# #s #> s+ #>> ;
+ level @ 0 <<# #s #> s+ #>>
+ 2dup r/o open-file throw to file
+ drop free throw ;
 
 : rest ( field-ptr -- space )
- field - max-size swap - ;
+ [ field max-size + ] literal swap - ;
 
 : open
- file-name 2dup r/o open-file throw to file
- drop free throw
+ open-file
  field
  begin
-  dup dup rest dup 0= throw file read-line throw
+  dup dup rest dup 0= throw
+  file read-line throw
  while
   ?dup if dup to width + then
  repeat
- drop 
+ drop
  field - width / to height
  width height * to size
  file close-file throw ;
 
 : coords ( offset - x y )
- dup width mod swap
- width / ;
+ width /mod ;
 
-: ident-found ( offset -- x y )
+: identified ( offset -- x y )
  dup field + tblank swap c!
  coords ;
 
@@ -83,14 +82,14 @@ s" the levels directory's name is too long."
  size 0 do
   field i + c@ case
    tplayer of
-    i ident-found py ! px !
+    i identified py ! px !
    endof
    tgoal of
-    i ident-found swap #goals @ goal 2!
+    i identified swap #goals @ goal 2!
     1 #goals +!
    endof
    tbox of
-    i ident-found swap #boxes @ box 2!
+    i identified swap #boxes @ box 2!
     1 #boxes +!
    endof
   endcase
@@ -128,14 +127,14 @@ s" the levels directory's name is too long."
 : pair+ ( a b c d -- a+c b+d )
  rot + >r + r> ;
 
-: pmove ( dx dy -- )
- 2dup px @ rot + swap py @ + 
+: move ( dx dy -- )
+ 2dup px @ py @ pair+ 
  2dup free? if go 2drop else
   2dup box-at dup -1 = if
    drop 2drop 2drop
   else
    >r
-   2swap 2over pair+ 2dup free? if
+   2tuck pair+ 2dup free? if
     swap r> box 2!
     go
    else
@@ -146,10 +145,10 @@ s" the levels directory's name is too long."
 
 : arrow-key ( key -- )
  case
-  k-right of 1 0 pmove endof
-  k-up of 0 -1 pmove endof
-  k-left of -1 0 pmove endof
-  k-down of 0 1 pmove endof
+  k-right of 1 0 move endof
+  k-up of 0 -1 move endof
+  k-left of -1 0 move endof
+  k-down of 0 1 move endof
  endcase ;
 
 : draw-item ( tile x y -- )
@@ -160,12 +159,12 @@ s" the levels directory's name is too long."
 
 : draw-boxes
  #boxes @ 0 ?do
-  tbox i box 2@ swap draw-item
+  tbox i box@ draw-item
  loop ;
 
 : draw-goals
  #goals @ 0 ?do
-  tgoal i goal 2@ swap draw-item
+  tgoal i goal@ draw-item
  loop ;
 
 : draw-field
@@ -190,25 +189,28 @@ s" the levels directory's name is too long."
  loop
  true ;
 
+: control
+ ekey ekey>char if
+  case
+   [char] r of load endof
+   #esc of true rdrop exit endof
+  endcase
+ else ekey>fkey if
+  arrow-key
+ else drop then then ;
+
+: win
+ 1 level +!
+ ." congratulations." cr
+ ." press any key to continue." cr
+ ekey drop
+ false rdrop exit ;
+
 : play ( -- stop? )
  begin
-  ekey ekey>char if
-   case
-    [char] r of load endof
-    27 of true exit endof
-   endcase
-  else ekey>fkey if
-   arrow-key
-  else drop then then
+  control
   draw
-  win? if
-   1 level +!
-   ." congratulations." cr
-   ." press any key to continue." cr
-   ekey drop
-   false
-   exit
-  then
+  win? if win then
  again ;
 
 : complete
